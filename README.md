@@ -20,8 +20,8 @@ It detects exposed server versions, technologies, and framework details — and 
 
 ### 1️⃣ Clone the repository
 ```bash
-git clone https://github.com/<your-username>/info-disclo.git
-cd info-disclo
+git clone https://github.com/dhananjayjambhulkar83/info-disclo-header
+cd info-disclo-header
 ```
 
 ### 2️⃣ Install dependencies
