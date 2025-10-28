@@ -35,7 +35,7 @@ pip install -r requirements.txt
 
 Scan a single URL:
 ```bash
-python info-disclo.py -u https://example.com
+python info-disclo.py  https://example.com
 ```
 
 Scan multiple URLs from a file:
@@ -45,22 +45,22 @@ python info-disclo.py -l targets.txt
 
 Show only vulnerable findings:
 ```bash
-python info-disclo.py -u https://example.com --only-vuln
+python info-disclo.py  https://example.com --only-vuln
 ```
 
 Save output to JSON:
 ```bash
-python info-disclo.py -u https://example.com -o results.json
+python info-disclo.py  https://example.com -o results.json
 ```
 
 Disable SSL verification (for testing):
 ```bash
-python info-disclo.py -u https://example.com --no-verify-ssl
+python info-disclo.py  https://example.com --no-verify-ssl
 ```
 
 Verbose mode:
 ```bash
-python info-disclo.py -u https://example.com -v
+python info-disclo.py  https://example.com -v
 ```
 
 ---
@@ -69,7 +69,6 @@ python info-disclo.py -u https://example.com -v
 
 | Flag | Description |
 |------|--------------|
-| `-u`, `--url` | Scan a single target URL |
 | `-l`, `--list` | Scan URLs from a file (one per line) |
 | `-o`, `--output` | Save output to a file (JSON or TXT) |
 | `--only-vuln` | Display only vulnerable findings |
