@@ -3,7 +3,10 @@ import argparse
 import requests
 import re
 import sys
+import urllib3
 from concurrent.futures import ThreadPoolExecutor
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==========================
 # Regex patterns
@@ -60,24 +63,49 @@ def has_version_info(value: str) -> (bool, str):
 # Scan single target
 # ==========================
 def scan_target(url, verify_ssl=True, show_mitigation=False, only_vuln=False):
+    import socket, time
+
+    # --- Step 1: DNS check ---
+    domain = url.replace("https://", "").replace("http://", "").split("/")[0]
     try:
-        resp = requests.get(url, timeout=10, verify=verify_ssl)
-    except requests.exceptions.SSLError:
-        if not only_vuln:
-            print(f"\n=== {url} ===")
-            print("[ERROR] SSL verification failed. Use --no-verify to skip SSL verification.")
-        return
-    except requests.exceptions.RequestException as e:
-        if not only_vuln:
-            print(f"\n=== {url} ===")
-            print(f"[ERROR] Request failed: {e}")
+        socket.gethostbyname(domain)
+    except socket.error:
+        print(f"\n=== {url} ===")
+        print(f"[⚠️] Skipping {url} — DNS not resolving.")
         return
 
+    # --- Step 2: Attempt request with retry + SSL fallback ---
+    response = None
+    for attempt in range(2):
+        try:
+            response = requests.get(url, timeout=10, verify=verify_ssl)
+            break
+        except requests.exceptions.SSLError:
+            if verify_ssl:
+                print(f"\n=== {url} ===")
+                print("[⚠️] SSL verification failed, retrying with verify=False...")
+                try:
+                    response = requests.get(url, timeout=10, verify=False)
+                    break
+                except Exception:
+                    pass
+        except requests.exceptions.RequestException as e:
+            if attempt == 0:
+                print(f"\n=== {url} ===")
+                print(f"[ERROR] Request failed ({e}). Retrying in 2s...")
+                time.sleep(2)
+            else:
+                print(f"\n=== {url} ===")
+                print(f"[ERROR] Request failed: {e}")
+    if not response:
+        return
+
+    # --- Step 3: Analyze headers ---
     vulnerable = False
     findings = []
 
     for h in HEADERS_TO_CHECK:
-        val = resp.headers.get(h)
+        val = response.headers.get(h)
         if val is None:
             continue
         is_ver, evidence = has_version_info(val)
@@ -85,7 +113,6 @@ def scan_target(url, verify_ssl=True, show_mitigation=False, only_vuln=False):
         if is_ver:
             vulnerable = True
 
-    # Skip safe targets if only_vuln flag is active
     if only_vuln and not vulnerable:
         return
 
@@ -102,6 +129,7 @@ def scan_target(url, verify_ssl=True, show_mitigation=False, only_vuln=False):
 
     print(f"\nVULNERABLE: {'Yes' if vulnerable else 'No'}")
 
+    # --- Step 4: Optional mitigation ---
     if show_mitigation and vulnerable:
         print("\nMitigation tips:")
         for t in MITIGATION_TIPS:
