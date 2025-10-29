@@ -70,8 +70,10 @@ def scan_target(url, verify_ssl=True, show_mitigation=False, only_vuln=False):
     try:
         socket.gethostbyname(domain)
     except socket.error:
-        print(f"\n=== {url} ===")
-        print(f"[⚠️] Skipping {url} — DNS not resolving.")
+        # When only_vuln is requested, skip noisy DNS error output
+        if not only_vuln:
+            print(f"\n=== {url} ===")
+            print(f"[⚠️] Skipping {url} — DNS not resolving.")
         return
 
     # --- Step 2: Attempt request with retry + SSL fallback ---
@@ -82,21 +84,29 @@ def scan_target(url, verify_ssl=True, show_mitigation=False, only_vuln=False):
             break
         except requests.exceptions.SSLError:
             if verify_ssl:
-                print(f"\n=== {url} ===")
-                print("[⚠️] SSL verification failed, retrying with verify=False...")
+                if not only_vuln:
+                    print(f"\n=== {url} ===")
+                    print("[⚠️] SSL verification failed, retrying with verify=False...")
                 try:
                     response = requests.get(url, timeout=10, verify=False)
                     break
                 except Exception:
                     pass
         except requests.exceptions.RequestException as e:
-            if attempt == 0:
-                print(f"\n=== {url} ===")
-                print(f"[ERROR] Request failed ({e}). Retrying in 2s...")
-                time.sleep(2)
+            # Only emit request error messages when not in only_vuln mode
+            if not only_vuln:
+                if attempt == 0:
+                    print(f"\n=== {url} ===")
+                    print(f"[ERROR] Request failed ({e}). Retrying in 2s...")
+                    time.sleep(2)
+                else:
+                    print(f"\n=== {url} ===")
+                    print(f"[ERROR] Request failed: {e}")
             else:
-                print(f"\n=== {url} ===")
-                print(f"[ERROR] Request failed: {e}")
+                # if only_vuln: don't print errors; retry once silently
+                if attempt == 0:
+                    time.sleep(2)
+            # continue loop to retry or finish
     if not response:
         return
 
@@ -113,13 +123,16 @@ def scan_target(url, verify_ssl=True, show_mitigation=False, only_vuln=False):
         if is_ver:
             vulnerable = True
 
+    # If only showing vulnerable targets and none found, skip output
     if only_vuln and not vulnerable:
         return
 
+    # Print header block for vulnerable targets, or for full mode prints everything
     print(f"\n=== {url} ===")
 
     if not findings:
-        print("No inspected fingerprinting headers present in response.")
+        if not only_vuln:
+            print("No inspected fingerprinting headers present in response.")
     else:
         for h, val, is_ver, evidence in findings:
             if is_ver:
@@ -127,6 +140,7 @@ def scan_target(url, verify_ssl=True, show_mitigation=False, only_vuln=False):
             elif not only_vuln:
                 print(f"[OK]         {h}: {val}")
 
+    # Print summary only when not in only_vuln mode or when vulnerable (so user sees 'Yes')
     print(f"\nVULNERABLE: {'Yes' if vulnerable else 'No'}")
 
     # --- Step 4: Optional mitigation ---
@@ -149,7 +163,7 @@ def main():
     parser.add_argument("-f", "--file", help="File containing list of targets (one per line)")
     parser.add_argument("--no-verify", action="store_true", help="Skip SSL certificate verification")
     parser.add_argument("--show-mitigation", action="store_true", help="Show mitigation tips and references for vulnerable targets")
-    parser.add_argument("--only-vuln", action="store_true", help="Show only vulnerable targets (skip safe ones)")
+    parser.add_argument("--only-vuln", action="store_true", help="Show only vulnerable targets (skip safe ones and suppress non-vuln errors)")
     parser.add_argument("--threads", type=int, default=5, help="Number of concurrent threads (default: 5)")
     args = parser.parse_args()
 
