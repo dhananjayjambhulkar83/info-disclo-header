@@ -86,6 +86,13 @@ python info-disclo.py  https://example.com -v
 - Exposed server and framework versions  
 - Leaked `X-Powered-By` and technology info  
 - Missing or insecure headers  
-- SSL misconfiguration alerts  
+- SSL misconfiguration alerts
+
+## v1.1 – 2025-10-29
+- Added DNS resolution check (skips unreachable hosts)
+- Added automatic SSL fallback (verify=False on failure)
+- Added retry logic for temporary network errors
+- Disabled SSL warnings for cleaner output
+- Improved console messages and stability
 
 
