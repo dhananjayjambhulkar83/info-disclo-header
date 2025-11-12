@@ -40,7 +40,7 @@ python info-disclo.py  https://example.com
 
 Scan multiple URLs from a file:
 ```bash
-python info-disclo.py -l targets.txt
+python info-disclo.py -f targets.txt
 ```
 
 Show only vulnerable findings:
@@ -69,7 +69,7 @@ python info-disclo.py  https://example.com -v
 
 | Flag | Description |
 |------|--------------|
-| `-l`, `--list` | Scan URLs from a file (one per line) |
+| `-f`,  | Scan URLs from a file (one per line) |
 | `-o`, `--output` | Save output to a file (JSON or TXT) |
 | `--only-vuln` | Display only vulnerable findings |
 | `--no-verify-ssl` | Disable SSL certificate verification |
@@ -88,7 +88,7 @@ python info-disclo.py  https://example.com -v
 - Missing or insecure headers  
 - SSL misconfiguration alerts
 
-## v1.1 – 2025-10-29
+## Updated Functions
 - Added DNS resolution check (skips unreachable hosts)
 - Added automatic SSL fallback (verify=False on failure)
 - Added retry logic for temporary network errors
